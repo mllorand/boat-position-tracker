@@ -49,8 +49,9 @@ export default {
 				center: [0, 0],
 				constrainResolution: true
 			}),
-		})
 
+		})
+		
 		this.updateSource(this.geojson)
 	},
 
@@ -71,7 +72,7 @@ export default {
 
 			source.clear();
 			source.addFeatures(features);
-			view.fit(source.getExtent())
+			// view.fit(source.getExtent())
 		}
 	}
 }
