@@ -17,27 +17,43 @@ def iter_from_data_frame(line_data):
     } for i in range(len(line_data))
     )
 
-
-def stream_positions(lines):
-    for position in itertools.zip_longest(*lines):
-        json_object = json.dumps(
-            {'line1': position[0],
-             'line2': position[1],
-             'line3': position[2]
-             }
-        )
-        print(json_object)
-        sio.emit('positions', json_object)
-        sio.sleep(1)
-
-
 lines_data = [pandas.read_csv(f'./lines/line{i}.csv') for i in range(1, 4)]
 lines = [iter_from_data_frame(line) for line in lines_data]
 
 
+def stream_positions():
+    for position in itertools.zip_longest(*lines):
+        json_object = json.dumps(
+            {'line1': position[0],
+            'line2': position[1],
+            'line3': position[2]
+            }
+        )
+        print(json_object)
+        sio.sleep(1)
+        sio.emit('positions', json_object)
+
+
+
+
 @sio.event
 def connect(sid, environ):
-    print(sid, 'connected')
+    print(sid, 'express connected')
+    sio.start_background_task(stream_positions)
+
+
+    # sio.emit('message', 'connection to express')
+    # for position in itertools.zip_longest(*lines):
+    #     json_object = json.dumps(
+    #         {'line1': position[0],
+    #          'line2': position[1],
+    #          'line3': position[2]
+    #          }
+    #     )
+    #     # print(json_object)
+    #     a = sio.emit('positions', json_object)
+    #     print(a)
+    #     sio.sleep(1)
 
 
 @sio.event
@@ -45,6 +61,26 @@ def disconnect(sid):
     print(sid, 'disconnected')
 
 
-if __name__ == '__main__':
-    sio.start_background_task(stream_positions(lines))
-    eventlet.wsgi.server(eventlet.listen(('', 8000)), app)
+
+
+
+# lines_data = [pandas.read_csv(f'./lines/line{i}.csv') for i in range(1, 4)]
+# lines = [iter_from_data_frame(line) for line in lines_data]
+
+
+# @sio.event
+# def connect(sid, environ):
+#     print(sid, 'express connected')
+#     sio.emit('message', 'connection to express')
+
+#     # stream_positions(lines)
+
+
+# @sio.event
+# def disconnect(sid):
+#     print(sid, 'disconnected')
+
+
+# if __name__ == '__main__':
+eventlet.wsgi.server(eventlet.listen(('', 8000)), app)
+
