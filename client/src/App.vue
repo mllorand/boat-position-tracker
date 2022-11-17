@@ -1,10 +1,7 @@
 <template>
-  <!-- <div id="app"> -->
-    <div id="map">
-      <MapContainer :geojson="geojson"></MapContainer>
-    </div>
-  <!-- <h1>{{ positions }}</h1> -->
-  <!-- </div> -->
+  <div id="map">
+    <MapContainer :geojson="geojson"></MapContainer>
+  </div>
 </template>
 
 <script>
@@ -17,9 +14,7 @@ export default {
   },
 
   data: () => ({
-     
-    // positions: 'hello',
-    
+
     geojson: {
       type: 'FeatureCollection',
       crs: {
@@ -61,57 +56,49 @@ export default {
   mounted() {
     const socket = SocketioService.setupSocketConnection()
     socket.on('positions', data => {
-      
+
       const positions = JSON.parse(data)
 
       const newGeojson = {
-      type: 'FeatureCollection',
-      crs: {
-        type: 'name',
-        properties: {
-          name: 'EPSG:3857',
+        type: 'FeatureCollection',
+        crs: {
+          type: 'name',
+          properties: {
+            name: 'EPSG:3857',
+          },
         },
-      },
-      features: [
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Point',
-            coordinates: [positions.line1.lon, positions.line1.lat]
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Point',
+              coordinates: [positions.line1.lon, positions.line1.lat]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Point',
+              coordinates: [positions.line2.lon, positions.line2.lat]
+            }
+          },
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'Point',
+              coordinates: [positions.line3.lon, positions.line3.lat]
+            }
           }
-        },
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Point',
-            coordinates: [positions.line2.lon, positions.line2.lat]
-          }
-        },
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Point',
-            coordinates: [positions.line3.lon, positions.line3.lat]
-          }
-        }
-      ]
-    }
+        ]
+      }
 
-    this.geojson = newGeojson
-      // console.log('ship1 coordinates', this.geojson.features.at(0).geometry.coordinates)
-      // console.log(positions)
-      // console.log(positions.line1.lon)
-
-      // this.geojson.features.at(0).geometry.coordinates = [positions.line1.lon, positions.line1.lat]
-      // this.geojson.features.at(1).geometry.coordinates = [positions.line2.lon, positions.line2.lat]
-      // this.geojson.features.at(2).geometry.coordinates = [positions.line3.lon, positions.line3.lat]
-      
+      this.geojson = newGeojson
     });
   },
-  
+
   beforeUnmount() {
     SocketioService.disconnect()
   }
