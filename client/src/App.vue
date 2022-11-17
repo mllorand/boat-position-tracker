@@ -1,125 +1,157 @@
 <template>
-  <div id="map">
-    <MapContainer :geojson="geojson"></MapContainer>
-  </div>
+	<div id="map">
+		<MapContainer :geojson="geojson" :headings="headings"></MapContainer>
+	</div>
 </template>
+
 
 <script>
 import SocketioService from './services/socketio.service.js';
 import MapContainer from './components/MapContainer.vue';
+import Fill from 'ol/style/Fill';
+import Stroke from 'ol/style/Stroke';
+import Style from 'ol/style/Style';
+import RegularShape from 'ol/style/Style'
 export default {
-  name: 'App',
-  components: {
-    MapContainer
-  },
+	name: 'App',
+	components: {
+		MapContainer
+	},
 
-  data: () => ({
+	data: () => ({
 
-    geojson: {
-      type: 'FeatureCollection',
-      crs: {
-        type: 'name',
-        properties: {
-          name: 'EPSG:3857',
-        },
-      },
-      features: [
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Point',
-            coordinates: [20.73998593, 48.21339894]
-          }
-        },
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Point',
-            coordinates: [20.73990023, 48.21496414]
-          }
-        },
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            type: 'Point',
-            coordinates: [20.73651803, 48.21694363]
-          }
-        }
-      ]
-    }
+		headings: [3.470315226, 162.6569972, 87.18099145],
 
-  }),
+		geojson: {
+			type: 'FeatureCollection',
+			crs: {
+				type: 'name',
+				properties: {
+					name: 'EPSG:3857',
+				},
+			},
+			features: [
+				{
+					type: 'Feature',
+					properties: {},
+					geometry: {
+						type: 'Point',
+						coordinates: [20.73998593, 48.21339894]
+					}
+				},
+				{
+					type: 'Feature',
+					properties: {},
+					geometry: {
+						type: 'Point',
+						coordinates: [20.73990023, 48.21496414]
+					}
+				},
+				{
+					type: 'Feature',
+					properties: {},
+					geometry: {
+						type: 'Point',
+						coordinates: [20.73651803, 48.21694363]
+					}
+				}
+			]
+		}
 
-  mounted() {
-    const socket = SocketioService.setupSocketConnection()
-    socket.on('positions', data => {
+	}),
 
-      const positions = JSON.parse(data)
+	mounted() {
+		const socket = SocketioService.setupSocketConnection()
+		socket.on('positions', data => {
 
-      const newGeojson = {
-        type: 'FeatureCollection',
-        crs: {
-          type: 'name',
-          properties: {
-            name: 'EPSG:3857',
-          },
-        },
-        features: [
-          {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'Point',
-              coordinates: [positions.line1.lon, positions.line1.lat]
-            }
-          },
-          {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'Point',
-              coordinates: [positions.line2.lon, positions.line2.lat]
-            }
-          },
-          {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'Point',
-              coordinates: [positions.line3.lon, positions.line3.lat]
-            }
-          }
-        ]
-      }
 
-      this.geojson = newGeojson
-    });
-  },
 
-  beforeUnmount() {
-    SocketioService.disconnect()
-  }
+			const positions = JSON.parse(data)
+
+			const x = 0.00002
+			const y = 0.00008
+
+			
+
+			const newGeojson = {
+				type: 'FeatureCollection',
+				crs: {
+					type: 'name',
+					properties: {
+						name: 'EPSG:3857',
+					},
+				},
+				features: [
+					{
+						type: 'Feature',
+						properties: {},
+						geometry: {
+							type: 'Polygon',
+							coordinates: [[
+								[positions.line1.lon, positions.line1.lat],
+								[positions.line1.lon - x, positions.line1.lat - y],
+								[positions.line1.lon + x, positions.line1.lat - y],
+								[positions.line1.lon, positions.line1.lat]
+							]]
+						}
+					},
+					{
+						type: 'Feature',
+						properties: {},
+						geometry: {
+							type: 'Polygon',
+							coordinates: [[
+								[positions.line2.lon, positions.line2.lat],
+								[positions.line2.lon - x, positions.line2.lat - y],
+								[positions.line2.lon + x, positions.line2.lat - y],
+								[positions.line2.lon, positions.line2.lat]
+							]]
+						}
+					},
+					
+					{
+						type: 'Feature',
+						properties: {},
+						geometry: {
+							type: 'Polygon',
+							coordinates: 
+							[[
+								[positions.line3.lon, positions.line3.lat],
+								[positions.line3.lon - x, positions.line3.lat - y],
+								[positions.line3.lon + x, positions.line3.lat - y],
+								[positions.line3.lon, positions.line3.lat]
+							]]
+						}
+					}
+				]
+			}
+			this.headings = [positions.line1.heading, positions.line2.heading, positions.line3.heading]
+			this.geojson = newGeojson
+
+		});
+	},
+
+	beforeUnmount() {
+		SocketioService.disconnect()
+	}
 }
 </script>
 
 <style>
 html,
 body {
-  height: 100%;
-  margin: 0;
+	height: 100%;
+	margin: 0;
 }
 
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  height: 100%;
-  display: grid;
-  grid-template-columns: 100vh;
-  grid-auto-rows: 1fr;
-  grid-gap: 1rem;
-  padding: 1rem;
-  box-sizing: border-box;
+	font-family: Avenir, Helvetica, Arial, sans-serif;
+	height: 100%;
+	display: grid;
+	grid-template-columns: 100vh;
+	grid-auto-rows: 1fr;
+	grid-gap: 1rem;
+	padding: 1rem;
+	box-sizing: border-box;
 }
 </style>
