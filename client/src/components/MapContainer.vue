@@ -24,8 +24,9 @@ export default {
 	name: 'MapContainer',
 	components: {},
 	props: {
-		geojson: Object,
-		headings: Array
+		boats: Object,
+		headings: Array,
+		activeRecording: Object
 
 	},
 	data: () => ({
@@ -55,45 +56,62 @@ export default {
 				center: [0, 0],
 				constrainResolution: true,
 			}),
+		})
 
+		this.olMap.on('click', (e) => {
+			this.olMap.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
+				console.log(feature)
+			})
 		})
 
 		this.olMap.getView().fit([2308427.160996733, 6142444.414658196, 2308768.012371982, 6143023.4081032])
 		this.olMap.getView().setZoom(17)
-		this.updateSource(this.geojson)
+		this.updateSource(this.boats)
 	},
 
 	watch: {
-		geojson(value) {
+		boats(value) {
 			this.updateSource(value)
 			// this.addTrack()
 		}
 	},
 
 	methods: {
-		updateSource(geojson) {
+		updateSource(boats) {
 
 			const stroke = new Stroke({ color: 'black', width: 1 });
 			const fill = new Fill({ color: 'green' });
 
-			const defaultStyle = new Style({
+			const liveBoatStyle = new Style({
 				stroke: stroke,
 				fill: fill
 			})
 
-			const view = this.olMap.getView()
+			const liveRecording = new Style({
+				stroke: new Stroke({color: 'red', width: 2})
+			})
+
 			const source = this.vectorLayer.getSource()
 
 			const features = new GeoJSON({
 				featureProjection: 'EPSG:3857'
-			}).readFeatures(geojson)
+			}).readFeatures(boats)
+
+			const recording = new GeoJSON({
+				featureProjection: 'EPSG:3857'
+			}).readFeature(this.activeRecording)
+			
+			recording.setStyle(liveRecording)
 
 			source.clear();
 			source.addFeatures(features);
+			source.addFeature(recording);
+
+			
 
 			for (let i = 0; i <= 2; i++) {
 				const feature = features.at(i)
-				feature.setStyle(defaultStyle)
+				feature.setStyle(liveBoatStyle)
 				const anchor = getCenter(feature.getGeometry().getExtent())
 				feature.getGeometry().rotate(this.headings.at(i) * (Math.PI / 180), anchor)
 

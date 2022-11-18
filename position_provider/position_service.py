@@ -4,6 +4,7 @@ from time import sleep
 import itertools
 import json
 import socketio
+import sys
 
 sio = socketio.Server(cors_allowed_origins="*", async_mode='eventlet')
 app = socketio.WSGIApp(sio)
@@ -31,6 +32,22 @@ def stream_positions(lines):
 
 lines_data = [pandas.read_csv(f'./lines/line{i}.csv') for i in range(1, 4)]
 lines = [iter_from_data_frame(line) for line in lines_data]
+
+# longest = 0
+# for line_data in lines_data:
+#     longest = max(longest, len(line_data.index))
+
+# for line_data in lines_data:
+#     if longest <= len(line_data.index):
+#         continue
+#     for i in range(longest - len(line_data.index)):
+#         line_data.append(line_data.iloc[-1])
+    
+
+# # a = json.dumps(lines_data)
+# for data in lines_data:
+#     print(data)
+# sys.exit(0)
 
 
 @sio.event

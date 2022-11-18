@@ -1,6 +1,6 @@
 <template>
 	<div id="map">
-		<MapContainer :geojson="geojson" :headings="headings"></MapContainer>
+		<MapContainer :boats="boats" :headings="headings" :activeRecording="activeRecording"></MapContainer>
 	</div>
 </template>
 
@@ -22,7 +22,15 @@ export default {
 
 		headings: [3.470315226, 162.6569972, 87.18099145],
 
-		geojson: {
+		activeRecording: {
+			type: 'Feature',
+			geometry: {
+				type: 'LineString',
+				coordinates: []
+			}
+		},
+
+		boats: {
 			type: 'FeatureCollection',
 			crs: {
 				type: 'name',
@@ -64,16 +72,36 @@ export default {
 		const socket = SocketioService.setupSocketConnection()
 		socket.on('positions', data => {
 
-
-
 			const positions = JSON.parse(data)
 
-			const x = 0.00002
-			const y = 0.00008
 
-			
 
-			const newGeojson = {
+
+			const newActiveRecording = {
+				type: 'Feature',
+				geometry: {
+					type: 'LineString',
+					coordinates: this.activeRecording.geometry.coordinates
+				}
+			}
+
+			// const newPoint = {
+			// 	type: 'Feature',
+			// 		properties: {},
+			// 		geometry: {
+			// 			type: 'Point',
+			// 			coordinates: [positions.line1.lon, positions.line1.lat]
+			// 		}
+			// }
+
+			newActiveRecording.geometry.coordinates.push([positions.line1.lon, positions.line1.lat])
+
+			console.log(newActiveRecording.geometry.coordinates)
+
+			const x = 0.00004
+			const y = 0.0001
+
+			const newBoats = {
 				type: 'FeatureCollection',
 				crs: {
 					type: 'name',
@@ -108,25 +136,26 @@ export default {
 							]]
 						}
 					},
-					
+
 					{
 						type: 'Feature',
 						properties: {},
 						geometry: {
 							type: 'Polygon',
-							coordinates: 
-							[[
-								[positions.line3.lon, positions.line3.lat],
-								[positions.line3.lon - x, positions.line3.lat - y],
-								[positions.line3.lon + x, positions.line3.lat - y],
-								[positions.line3.lon, positions.line3.lat]
-							]]
+							coordinates:
+								[[
+									[positions.line3.lon, positions.line3.lat],
+									[positions.line3.lon - x, positions.line3.lat - y],
+									[positions.line3.lon + x, positions.line3.lat - y],
+									[positions.line3.lon, positions.line3.lat]
+								]]
 						}
 					}
 				]
 			}
 			this.headings = [positions.line1.heading, positions.line2.heading, positions.line3.heading]
-			this.geojson = newGeojson
+			this.activeRecording = newActiveRecording
+			this.boats = newBoats
 
 		});
 	},
