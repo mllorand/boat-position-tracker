@@ -17,7 +17,7 @@ import Fill from 'ol/style/Fill'
 import Style from 'ol/style/Style'
 import RegularShape from 'ol/style/RegularShape'
 import { getCenter } from 'ol/extent'
-import axios from 'axios';
+import { LinearRing } from 'ol/geom'
 
 
 
@@ -29,11 +29,10 @@ export default {
 		boats: Object,
 		headings: Array,
 		activeRecording: Object
-
 	},
 	data: () => ({
 		olMap: null,
-		vectorLayer: null
+		vectorLayer: null,
 	}),
 
 	mounted() {
@@ -59,21 +58,44 @@ export default {
 				constrainResolution: true,
 			}),
 		})
-
 		this.olMap.on('click', (e) => {
-			this.olMap.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
-				console.log(JSON.stringify({ line: feature.getProperties().name }))
+			this.olMap.forEachFeatureAtPixel(e.pixel, (feature, layer) => {
+				const recorded = feature.get('recorded')
+				const line = feature.get('name')
+				console.log('the currentyl clicked line recorded bool', recorded)
 
-				fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/start',
-					{
-						method: 'POST',
-						mode: 'no-cors',
-						headers: {
-							'Content-Type': 'application/x-www-form-urlencoded'
-						},
-						body: `line=${feature.getProperties().name}`
-					}
-				).then(res => console.log(res))
+				if (!recorded) {
+					fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/start',
+						{
+							method: 'POST',
+							mode: 'no-cors',
+							headers: {
+								'Content-Type': 'application/x-www-form-urlencoded'
+							},
+							body: `line=${line}`
+						}
+					).then(() => {
+						this.$emit('changeline', line)
+						feature.set('recorded', true)
+					})
+
+				} else {
+					fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/stop', {mode: 'no-cors'})
+						.then(() => {
+						this.$emit('changeline', null)
+						feature.set('recorded', false)
+						})
+				}
+
+				// WHEN CLICKED IF NOT RECORDED START RECORDING,
+				// SEND START REQUEST AND CHANGELINE TO FEATURE NAME,
+				// SET RECORDED TO TRUE
+
+				// IF ALREADY RECORDING STOP IT,
+				// SEND STOP REQUEST AND CHANGELINE TO NULL,
+				// SET RECORDED TO FALSE
+
+
 			})
 		})
 
@@ -87,9 +109,11 @@ export default {
 			this.updateSource(value)
 			// this.addTrack()
 		}
+
 	},
 
 	methods: {
+
 		updateSource(boats) {
 
 			const stroke = new Stroke({ color: 'black', width: 1 });
@@ -98,6 +122,11 @@ export default {
 			const liveBoatStyle = new Style({
 				stroke: stroke,
 				fill: fill
+			})
+
+			const recordedBoatStyle = new Style({
+				stroke: stroke,
+				fill: new Fill({color: 'red'})
 			})
 
 			const liveRecording = new Style({
@@ -110,21 +139,25 @@ export default {
 				featureProjection: 'EPSG:3857'
 			}).readFeatures(boats)
 
-			const recording = new GeoJSON({
-				featureProjection: 'EPSG:3857'
-			}).readFeature(this.activeRecording)
 
-			recording.setStyle(liveRecording)
 
 			source.clear();
 			source.addFeatures(features);
-			source.addFeature(recording);
+
+			if (this.activeRecording) {
+				const recording = new GeoJSON({
+					featureProjection: 'EPSG:3857'
+				}).readFeature(this.activeRecording)
+				recording.setStyle(liveRecording)
+				source.addFeature(recording);
+			}
+			// this.$emit('changeline', 'line2')
 
 
 
 			for (let i = 0; i <= 2; i++) {
 				const feature = features.at(i)
-				feature.setStyle(liveBoatStyle)
+				feature.setStyle(!feature.get('recorded') ? liveBoatStyle : recordedBoatStyle)
 				const anchor = getCenter(feature.getGeometry().getExtent())
 				feature.getGeometry().rotate(this.headings.at(i) * (Math.PI / 180), anchor)
 

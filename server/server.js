@@ -50,8 +50,9 @@ app.post('/start', (req, res) => {
     })
 });
 
-app.post('/stop', (req, res) => {
+app.get('/stop', (req, res) => {
     currentRecordingId = null
+    res.status(200).send('ok')
 });
 
 

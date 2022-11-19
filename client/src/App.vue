@@ -1,6 +1,7 @@
 <template>
 	<div id="map">
-		<MapContainer :boats="boats" :headings="headings" :activeRecording="activeRecording"></MapContainer>
+		<MapContainer :boats="boats" :headings="headings" :activeRecording="activeRecording"
+			v-on:changeline="recordedLine = $event"></MapContainer>
 	</div>
 </template>
 
@@ -22,13 +23,9 @@ export default {
 
 		headings: [3.470315226, 162.6569972, 87.18099145],
 
-		activeRecording: {
-			type: 'Feature',
-			geometry: {
-				type: 'LineString',
-				coordinates: []
-			}
-		},
+		recordedLine: null,
+
+		activeRecording: null,
 
 		boats: {
 			type: 'FeatureCollection',
@@ -76,25 +73,41 @@ export default {
 
 
 
+			// console.log(this.recordedLine)
 
-			const newActiveRecording = {
-				type: 'Feature',
-				geometry: {
-					type: 'LineString',
-					coordinates: this.activeRecording.geometry.coordinates
+			if (this.activeRecording) {
+				const newActiveRecording = {
+					type: 'Feature',
+					geometry: {
+						type: 'LineString',
+						coordinates: this.activeRecording.geometry.coordinates
+					}
 				}
+				newActiveRecording.geometry.coordinates.push([positions[this.recordedLine].lon, positions[this.recordedLine].lat])
+				this.activeRecording = newActiveRecording
 			}
+
+			if (this.recordedLine) {
+				const newActiveRecording = {
+					type: 'Feature',
+					geometry: {
+						type: 'LineString',
+						coordinates: this.activeRecording.geometry.coordinates
+					}
+				}
+
+			}
+
 
 			// const newPoint = {
 			// 	type: 'Feature',
 			// 		properties: {},
 			// 		geometry: {
 			// 			type: 'Point',
-			// 			coordinates: [positions.line1.lon, positions.line1.lat]
+			// 			coordinates: [positions[this.recordedLine].lon, positions[this.recordedLine].lat]
 			// 		}
 			// }
 
-			newActiveRecording.geometry.coordinates.push([positions.line1.lon, positions.line1.lat])
 
 			// console.log(newActiveRecording.geometry.coordinates)
 
@@ -112,7 +125,7 @@ export default {
 				features: [
 					{
 						type: 'Feature',
-						properties: {name: 'line1'},
+						properties: { name: 'line1', recorded: this.recordedLine == 'line1'},
 						geometry: {
 							type: 'Polygon',
 							coordinates: [[
@@ -125,7 +138,7 @@ export default {
 					},
 					{
 						type: 'Feature',
-						properties: {name: 'line2'},
+						properties: { name: 'line2', recorded: this.recordedLine == 'line2'},
 						geometry: {
 							type: 'Polygon',
 							coordinates: [[
@@ -139,7 +152,7 @@ export default {
 
 					{
 						type: 'Feature',
-						properties: {name: 'line3'},
+						properties: { name: 'line3', recorded: this.recordedLine == 'line3' },
 						geometry: {
 							type: 'Polygon',
 							coordinates:
@@ -154,10 +167,27 @@ export default {
 				]
 			}
 			this.headings = [positions.line1.heading, positions.line2.heading, positions.line3.heading]
-			this.activeRecording = newActiveRecording
+			// this.activeRecording = newActiveRecording
 			this.boats = newBoats
 
 		});
+	},
+
+	watch: {
+		recordedLine(value) {
+			console.log('the changed value of recordedLine', value)
+			if (value) {
+				this.activeRecording = {
+					type: 'Feature',
+					geometry: {
+						type: 'LineString',
+						coordinates: []
+					}
+				}
+			} else {
+				this.activeRecording = null
+			}
+		}
 	},
 
 	beforeUnmount() {
