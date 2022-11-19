@@ -20,15 +20,16 @@ def iter_from_data_frame(line_data):
 
 
 def stream_positions(lines):
-    for position in itertools.zip_longest(*lines):
-        json_object = json.dumps(
-            {'line1': position[0],
-            'line2': position[1],
-            'line3': position[2]
-            }
-        )
-        sio.sleep(1)
-        sio.emit('positions', json_object)
+    while True:
+        for position in itertools.zip_longest(*lines):
+            json_object = json.dumps(
+                {'line1': position[0],
+                'line2': position[1],
+                'line3': position[2]
+                }
+            )
+            sio.sleep(1)
+            sio.emit('positions', json_object)
 
 lines_data = [pandas.read_csv(f'./lines/line{i}.csv') for i in range(1, 4)]
 lines = [iter_from_data_frame(line) for line in lines_data]

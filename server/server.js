@@ -1,13 +1,23 @@
 require('dotenv').config()
-const app = require('express')();
+const express = require('express');
+const app = express();
 const http = require('http').createServer(app);
-const bodyParser = require('body-parser')
+const bodyParser = require('body-parser');
 const PORT = process.env.SERVER_PORT || 4000;
 
+const io = require("socket.io");
+const clientIo = require("socket.io-client");
+
+const distributorSocket = io(http, {
+    cors: {
+        origins: ['http://localhost:8080/**']
+    }
+});
+
+const providerSocket = clientIo('http://localhost:8000');
+
 app.use(
-    bodyParser.urlencoded({
-        extended: true,
-    })
+    bodyParser.urlencoded() 
 )
 
 
@@ -22,21 +32,21 @@ const pool = new Pool({
 
 
 
-const io = require("socket.io");
-const clientIo = require("socket.io-client");
+
 
 let currentRecordingId = null;
 let currentLine = null;
 
 app.post('/start', (req, res) => {
     const { line } = req.body;
+    console.log(line)
     pool.query("SELECT start_recording($1)", [line], (err, results) => {
-        if (err) {
-            throw err
-        }
-        currentRecordingId = results.rows[0].start_recording
-        currentLine = line
-        res.status(200).send('')
+            if (err) {
+                    throw err
+                }
+                currentRecordingId = results.rows[0].start_recording
+                currentLine = line
+        res.status(200).send('ok')
     })
 });
 
@@ -44,12 +54,7 @@ app.post('/stop', (req, res) => {
     currentRecordingId = null
 });
 
-const providerSocket = clientIo('http://localhost:8000');
-const distributorSocket = io(http, {
-    cors: {
-        origins: ['http://localhost:8080']
-    }
-});
+
 
 providerSocket.on('positions', positions => {
     if (currentRecordingId) {

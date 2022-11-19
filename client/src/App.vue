@@ -96,7 +96,7 @@ export default {
 
 			newActiveRecording.geometry.coordinates.push([positions.line1.lon, positions.line1.lat])
 
-			console.log(newActiveRecording.geometry.coordinates)
+			// console.log(newActiveRecording.geometry.coordinates)
 
 			const x = 0.00004
 			const y = 0.0001
@@ -112,7 +112,7 @@ export default {
 				features: [
 					{
 						type: 'Feature',
-						properties: {},
+						properties: {name: 'line1'},
 						geometry: {
 							type: 'Polygon',
 							coordinates: [[
@@ -125,7 +125,7 @@ export default {
 					},
 					{
 						type: 'Feature',
-						properties: {},
+						properties: {name: 'line2'},
 						geometry: {
 							type: 'Polygon',
 							coordinates: [[
@@ -139,7 +139,7 @@ export default {
 
 					{
 						type: 'Feature',
-						properties: {},
+						properties: {name: 'line3'},
 						geometry: {
 							type: 'Polygon',
 							coordinates:

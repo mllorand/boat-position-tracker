@@ -17,6 +17,8 @@ import Fill from 'ol/style/Fill'
 import Style from 'ol/style/Style'
 import RegularShape from 'ol/style/RegularShape'
 import { getCenter } from 'ol/extent'
+import axios from 'axios';
+
 
 
 
@@ -60,7 +62,18 @@ export default {
 
 		this.olMap.on('click', (e) => {
 			this.olMap.forEachFeatureAtPixel(e.pixel, function (feature, layer) {
-				console.log(feature)
+				console.log(JSON.stringify({ line: feature.getProperties().name }))
+
+				fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/start',
+					{
+						method: 'POST',
+						mode: 'no-cors',
+						headers: {
+							'Content-Type': 'application/x-www-form-urlencoded'
+						},
+						body: `line=${feature.getProperties().name}`
+					}
+				).then(res => console.log(res))
 			})
 		})
 
@@ -88,7 +101,7 @@ export default {
 			})
 
 			const liveRecording = new Style({
-				stroke: new Stroke({color: 'red', width: 2})
+				stroke: new Stroke({ color: 'red', width: 2 })
 			})
 
 			const source = this.vectorLayer.getSource()
@@ -100,14 +113,14 @@ export default {
 			const recording = new GeoJSON({
 				featureProjection: 'EPSG:3857'
 			}).readFeature(this.activeRecording)
-			
+
 			recording.setStyle(liveRecording)
 
 			source.clear();
 			source.addFeatures(features);
 			source.addFeature(recording);
 
-			
+
 
 			for (let i = 0; i <= 2; i++) {
 				const feature = features.at(i)
