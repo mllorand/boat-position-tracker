@@ -18,6 +18,7 @@ import Style from 'ol/style/Style'
 import RegularShape from 'ol/style/RegularShape'
 import { getCenter } from 'ol/extent'
 import { LinearRing } from 'ol/geom'
+import { textHeights } from 'ol/render/canvas'
 
 
 
@@ -28,7 +29,10 @@ export default {
 	props: {
 		boats: Object,
 		headings: Array,
-		activeRecording: Object
+		activeRecording: Object,
+		activeReplay: Object,
+		replayHeading: Number,
+		replayedBoat: Object
 	},
 	data: () => ({
 		olMap: null,
@@ -62,7 +66,7 @@ export default {
 			this.olMap.forEachFeatureAtPixel(e.pixel, (feature, layer) => {
 				const recorded = feature.get('recorded')
 				const line = feature.get('name')
-				console.log('the currentyl clicked line recorded bool', recorded)
+				// console.log('the currentyl clicked line recorded bool', recorded)
 
 				if (!recorded) {
 					fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/start',
@@ -80,22 +84,12 @@ export default {
 					})
 
 				} else {
-					fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/stop', {mode: 'no-cors'})
+					fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/stop', { mode: 'no-cors' })
 						.then(() => {
-						this.$emit('changeline', null)
-						feature.set('recorded', false)
+							this.$emit('changeline', null)
+							feature.set('recorded', false)
 						})
 				}
-
-				// WHEN CLICKED IF NOT RECORDED START RECORDING,
-				// SEND START REQUEST AND CHANGELINE TO FEATURE NAME,
-				// SET RECORDED TO TRUE
-
-				// IF ALREADY RECORDING STOP IT,
-				// SEND STOP REQUEST AND CHANGELINE TO NULL,
-				// SET RECORDED TO FALSE
-
-
 			})
 		})
 
@@ -126,23 +120,44 @@ export default {
 
 			const recordedBoatStyle = new Style({
 				stroke: stroke,
-				fill: new Fill({color: 'red'})
+				fill: new Fill({ color: 'red' })
+			})
+
+			const replayedBoatStyle = new Style({
+				stroke: stroke,
+				fill: new Fill({ color: '#2c2c2c' })
 			})
 
 			const liveRecording = new Style({
 				stroke: new Stroke({ color: 'red', width: 2 })
 			})
 
+			const replayedRecording = new Style({
+				stroke: new Stroke({ color: '#2c2c2c', width: 2 })
+			})
+
 			const source = this.vectorLayer.getSource()
 
+			
+			source.clear();
+			
 			const features = new GeoJSON({
 				featureProjection: 'EPSG:3857'
 			}).readFeatures(boats)
-
-
-
-			source.clear();
 			source.addFeatures(features);
+			
+
+			if(this.replayedBoat) {
+				const boat = new GeoJSON({
+					featureProjection: 'EPSG:3857'
+				}).readFeature(this.replayedBoat)
+				boat.setStyle(replayedBoatStyle)
+				source.addFeature(boat)
+				const anchor = getCenter(boat.getGeometry().getExtent())
+				boat.getGeometry().rotate(this.replayHeading * (Math.PI / 180), anchor)
+				
+			}
+
 
 			if (this.activeRecording) {
 				const recording = new GeoJSON({
@@ -151,16 +166,22 @@ export default {
 				recording.setStyle(liveRecording)
 				source.addFeature(recording);
 			}
-			// this.$emit('changeline', 'line2')
+
+			if (this.activeReplay) {
+				const replay = new GeoJSON({
+					featureProjection: 'EPSG:3857'
+				}).readFeature(this.activeReplay)
+				replay.setStyle(replayedRecording)
+				source.addFeature(replay)
+			}
 
 
 
 			for (let i = 0; i <= 2; i++) {
 				const feature = features.at(i)
 				feature.setStyle(!feature.get('recorded') ? liveBoatStyle : recordedBoatStyle)
-				const anchor = getCenter(feature.getGeometry().getExtent())
+				const anchor = getCenter(feature.getGeometry().getExtent())		
 				feature.getGeometry().rotate(this.headings.at(i) * (Math.PI / 180), anchor)
-
 			}
 
 

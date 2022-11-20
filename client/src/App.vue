@@ -1,7 +1,22 @@
 <template>
-	<div id="map">
-		<MapContainer :boats="boats" :headings="headings" :activeRecording="activeRecording"
-			v-on:changeline="recordedLine = $event"></MapContainer>
+	<div id="app">
+		<div id="map">
+			<MapContainer :boats="boats" :headings="headings" :replayHeading="replayHeading"
+				:activeRecording="activeRecording" :activeReplay="activeReplay" :replayedBoat="replayedBoat"
+				v-on:changeline="recordedLine = $event">
+			</MapContainer>
+		</div>
+		<div id="records">
+			<h2>Recorded tracks:</h2>
+			<ul>
+				<!-- <li v-for="record in recordings" @click="startReplay(record.recording_id)">
+					<p>{{ record.start_time }}: {{ record.line }}</p>
+				</li> -->
+				<li v-for="record in recordings" @click="startReplay(record.recording_id)">
+					<p>{{ record.start_time }}: {{ record.line }}</p>
+				</li>
+			</ul>
+		</div>
 	</div>
 </template>
 
@@ -9,10 +24,6 @@
 <script>
 import SocketioService from './services/socketio.service.js';
 import MapContainer from './components/MapContainer.vue';
-import Fill from 'ol/style/Fill';
-import Stroke from 'ol/style/Stroke';
-import Style from 'ol/style/Style';
-import RegularShape from 'ol/style/Style'
 export default {
 	name: 'App',
 	components: {
@@ -21,11 +32,22 @@ export default {
 
 	data: () => ({
 
+
+		recordings: null,
+
 		headings: [3.470315226, 162.6569972, 87.18099145],
 
 		recordedLine: null,
 
 		activeRecording: null,
+
+		activeReplay: null,
+
+		replayedBoat: null,
+
+		replayedPositions: null,
+
+		replayHeading: null,
 
 		boats: {
 			type: 'FeatureCollection',
@@ -66,14 +88,21 @@ export default {
 	}),
 
 	mounted() {
+
+		const x = 0.00003
+		const y = 0.00008
+
+		fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/recordings')
+			.then(res => res.json())
+			.then(data => this.recordings = data)
+
 		const socket = SocketioService.setupSocketConnection()
 		socket.on('positions', data => {
 
 			const positions = JSON.parse(data)
 
+			console.log(positions)
 
-
-			// console.log(this.recordedLine)
 
 			if (this.activeRecording) {
 				const newActiveRecording = {
@@ -83,36 +112,42 @@ export default {
 						coordinates: this.activeRecording.geometry.coordinates
 					}
 				}
-				newActiveRecording.geometry.coordinates.push([positions[this.recordedLine].lon, positions[this.recordedLine].lat])
+				newActiveRecording.geometry.coordinates.push([positions[this.recordedLine].lon - x * y, positions[this.recordedLine].lat - y / 1.2])
 				this.activeRecording = newActiveRecording
 			}
 
-			if (this.recordedLine) {
-				const newActiveRecording = {
+			if (this.activeReplay) {
+				const newActiveReplay = {
 					type: 'Feature',
 					geometry: {
 						type: 'LineString',
-						coordinates: this.activeRecording.geometry.coordinates
+						coordinates: this.activeReplay.geometry.coordinates
+					}
+				}
+				let replayed = this.replayedPositions.pop()
+
+				const newReplayedBoat = {
+					type: 'Feature',
+					properties: { name: 'replayed' },
+					geometry: {
+						type: 'Polygon',
+						coordinates: [[
+							[+replayed.lon - x * y, +replayed.lat - y / 1.2],
+							[+replayed.lon + x, +replayed.lat - y],
+							[+replayed.lon, +replayed.lat],
+							[+replayed.lon - x, +replayed.lat - y],
+							[+replayed.lon - x * y, +replayed.lat - y / 1.2],
+						]]
 					}
 				}
 
+				newActiveReplay.geometry.coordinates.push([replayed.lon - x * y, replayed.lat - y / 1.2])
+				this.replayHeading = +replayed.heading
+				this.activeReplay = newActiveReplay
+				this.replayedBoat = newReplayedBoat
 			}
 
 
-			// const newPoint = {
-			// 	type: 'Feature',
-			// 		properties: {},
-			// 		geometry: {
-			// 			type: 'Point',
-			// 			coordinates: [positions[this.recordedLine].lon, positions[this.recordedLine].lat]
-			// 		}
-			// }
-
-
-			// console.log(newActiveRecording.geometry.coordinates)
-
-			const x = 0.00004
-			const y = 0.0001
 
 			const newBoats = {
 				type: 'FeatureCollection',
@@ -125,29 +160,33 @@ export default {
 				features: [
 					{
 						type: 'Feature',
-						properties: { name: 'line1', recorded: this.recordedLine == 'line1'},
+						properties: { name: 'line1', recorded: this.recordedLine == 'line1' },
 						geometry: {
 							type: 'Polygon',
 							coordinates: [[
+								[positions.line1.lon - x * y, positions.line1.lat - y / 1.2],
+								[positions.line1.lon + x, positions.line1.lat - y],
 								[positions.line1.lon, positions.line1.lat],
 								[positions.line1.lon - x, positions.line1.lat - y],
-								[positions.line1.lon + x, positions.line1.lat - y],
-								[positions.line1.lon, positions.line1.lat]
-							]]
-						}
+								[positions.line1.lon - x * y, positions.line1.lat - y / 1.2],
+							]],
+						},
+						layout: 'YX'
 					},
 					{
 						type: 'Feature',
-						properties: { name: 'line2', recorded: this.recordedLine == 'line2'},
+						properties: { name: 'line2', recorded: this.recordedLine == 'line2' },
 						geometry: {
 							type: 'Polygon',
 							coordinates: [[
+								[positions.line2.lon - x * y, positions.line2.lat - y / 1.2],
+								[positions.line2.lon + x, positions.line2.lat - y],
 								[positions.line2.lon, positions.line2.lat],
 								[positions.line2.lon - x, positions.line2.lat - y],
-								[positions.line2.lon + x, positions.line2.lat - y],
-								[positions.line2.lon, positions.line2.lat]
-							]]
-						}
+								[positions.line2.lon - x * y, positions.line2.lat - y / 1.2],
+							]],
+						},
+						layout: 'YX'
 					},
 
 					{
@@ -157,17 +196,18 @@ export default {
 							type: 'Polygon',
 							coordinates:
 								[[
+									[positions.line3.lon - x * y, positions.line3.lat - y / 1.2],
+									[positions.line3.lon + x, positions.line3.lat - y],
 									[positions.line3.lon, positions.line3.lat],
 									[positions.line3.lon - x, positions.line3.lat - y],
-									[positions.line3.lon + x, positions.line3.lat - y],
-									[positions.line3.lon, positions.line3.lat]
-								]]
-						}
+									[positions.line3.lon - x * y, positions.line3.lat - y / 1.2],
+								]],
+						},
+						layout: 'YX'
 					}
 				]
 			}
 			this.headings = [positions.line1.heading, positions.line2.heading, positions.line3.heading]
-			// this.activeRecording = newActiveRecording
 			this.boats = newBoats
 
 		});
@@ -175,7 +215,7 @@ export default {
 
 	watch: {
 		recordedLine(value) {
-			console.log('the changed value of recordedLine', value)
+			// console.log('the changed value of recordedLine', value)
 			if (value) {
 				this.activeRecording = {
 					type: 'Feature',
@@ -187,11 +227,45 @@ export default {
 			} else {
 				this.activeRecording = null
 			}
-		}
+			fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/recordings')
+				.then(res => res.json())
+				.then(data => this.recordings = data)
+		},
+
+		// activeReplay(value) {
+		// 	if (value) {
+		// 		this.activeReplay = {
+		// 			type: 'Feature',
+		// 			geometry: {
+		// 				type: 'LineString',
+		// 				coordinates: []
+		// 			}
+		// 		}
+		// 	} else {
+		// 		this.activeReplay = null
+		// 	}
+		// }
 	},
 
 	beforeUnmount() {
 		SocketioService.disconnect()
+	},
+
+	methods: {
+		startReplay(recordingId) {
+			fetch(process.env.VUE_APP_SOCKET_ENDPOINT + `/saved?recordingId=${recordingId}`)
+				.then(res => res.json())
+				.then(data => {
+					this.replayedPositions = data
+					this.activeReplay = {
+						type: 'Feature',
+						geometry: {
+							type: 'LineString',
+							coordinates: []
+						}
+					}
+				})
+		}
 	}
 }
 </script>
@@ -207,10 +281,36 @@ body {
 	font-family: Avenir, Helvetica, Arial, sans-serif;
 	height: 100%;
 	display: grid;
-	grid-template-columns: 100vh;
+	grid-template-columns: 9fr 2fr;
 	grid-auto-rows: 1fr;
 	grid-gap: 1rem;
 	padding: 1rem;
 	box-sizing: border-box;
+}
+
+#map {
+	grid-column: 1;
+	grid-row-start: 1;
+	grid-row-end: 1;
+}
+
+#records {
+	grid-column: 2;
+}
+
+li {
+	background: #fff;
+	margin: 20px auto;
+	padding: 10px 20px;
+	border-radius: 10px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+li:hover {
+	color: green;
+	cursor: pointer;
+	font-weight: bolder;
 }
 </style>

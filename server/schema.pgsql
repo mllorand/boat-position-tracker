@@ -1,6 +1,7 @@
 DROP TABLE IF EXISTS point CASCADE;
 DROP TABLE IF EXISTS recording CASCADE;
 DROP FUNCTION start_recording;
+-- DROP FUNCTION get_recording;
 DROP PROCEDURE insert_point;
 
 
@@ -40,4 +41,6 @@ SELECT
 FROM recording
 LEFT JOIN point on recording.recording_id = point.recording_id
 GROUP BY recording.recording_id
-ORDER BY start_time DESC
+ORDER BY start_time DESC;
+
+
