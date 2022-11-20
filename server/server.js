@@ -50,12 +50,14 @@ app.post('/start', (req, res) => {
         }
         currentRecordingId = results.rows[0].start_recording
         currentLine = line
+        distributorSocket.emit('start', currentLine)
         res.status(200).send('ok')
     })
 });
 
 app.get('/stop', (req, res) => {
     currentRecordingId = null
+    distributorSocket.emit('stop')
     res.status(200).send('ok')
 });
 
@@ -72,8 +74,9 @@ app.get('/saved', (req, res) => {
         if (err) {
             throw err
         }
-        currentReplay = JSON.stringify(results.rows)
-        res.status(200).send(JSON.stringify(results.rows))
+        currentReplay = JSON.parse(JSON.stringify(results.rows))
+        distributorSocket.emit('replay')
+        res.status(200).send('ok')
     })
 })
 
@@ -87,6 +90,9 @@ providerSocket.on('positions', positions => {
                 throw err
             }
         })
+    }
+    if (currentReplay) {
+        positions["replay"] = currentReplay.pop()
     }
     distributorSocket.emit('positions', JSON.stringify(positions));
 })

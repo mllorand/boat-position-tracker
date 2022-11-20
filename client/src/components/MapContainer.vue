@@ -15,10 +15,8 @@ import 'ol/ol.css'
 import Stroke from 'ol/style/Stroke'
 import Fill from 'ol/style/Fill'
 import Style from 'ol/style/Style'
-import RegularShape from 'ol/style/RegularShape'
 import { getCenter } from 'ol/extent'
-import { LinearRing } from 'ol/geom'
-import { textHeights } from 'ol/render/canvas'
+import { Socket } from 'socket.io-client'
 
 
 
@@ -32,7 +30,7 @@ export default {
 		activeRecording: Object,
 		activeReplay: Object,
 		replayHeading: Number,
-		replayedBoat: Object
+		replayedBoat: Object,
 	},
 	data: () => ({
 		olMap: null,
@@ -66,8 +64,6 @@ export default {
 			this.olMap.forEachFeatureAtPixel(e.pixel, (feature, layer) => {
 				const recorded = feature.get('recorded')
 				const line = feature.get('name')
-				// console.log('the currentyl clicked line recorded bool', recorded)
-
 				if (!recorded) {
 					fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/start',
 						{
@@ -94,7 +90,7 @@ export default {
 		})
 
 		this.olMap.getView().fit([2308427.160996733, 6142444.414658196, 2308768.012371982, 6143023.4081032])
-		this.olMap.getView().setZoom(17)
+		this.olMap.getView().setZoom(16)
 		this.updateSource(this.boats)
 	},
 
@@ -138,16 +134,16 @@ export default {
 
 			const source = this.vectorLayer.getSource()
 
-			
+
 			source.clear();
-			
+
 			const features = new GeoJSON({
 				featureProjection: 'EPSG:3857'
 			}).readFeatures(boats)
 			source.addFeatures(features);
-			
 
-			if(this.replayedBoat) {
+
+			if (this.replayedBoat) {
 				const boat = new GeoJSON({
 					featureProjection: 'EPSG:3857'
 				}).readFeature(this.replayedBoat)
@@ -155,7 +151,7 @@ export default {
 				source.addFeature(boat)
 				const anchor = getCenter(boat.getGeometry().getExtent())
 				boat.getGeometry().rotate(this.replayHeading * (Math.PI / 180), anchor)
-				
+
 			}
 
 
@@ -180,7 +176,7 @@ export default {
 			for (let i = 0; i <= 2; i++) {
 				const feature = features.at(i)
 				feature.setStyle(!feature.get('recorded') ? liveBoatStyle : recordedBoatStyle)
-				const anchor = getCenter(feature.getGeometry().getExtent())		
+				const anchor = getCenter(feature.getGeometry().getExtent())
 				feature.getGeometry().rotate(this.headings.at(i) * (Math.PI / 180), anchor)
 			}
 

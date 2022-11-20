@@ -9,9 +9,6 @@
 		<div id="records">
 			<h2>Recorded tracks:</h2>
 			<ul>
-				<!-- <li v-for="record in recordings" @click="startReplay(record.recording_id)">
-					<p>{{ record.start_time }}: {{ record.line }}</p>
-				</li> -->
 				<li v-for="record in recordings" @click="startReplay(record.recording_id)">
 					<p>{{ record.start_time }}: {{ record.line }}</p>
 				</li>
@@ -45,7 +42,7 @@ export default {
 
 		replayedBoat: null,
 
-		replayedPositions: null,
+		socket: null,
 
 		replayHeading: null,
 
@@ -89,20 +86,36 @@ export default {
 
 	mounted() {
 
-		const x = 0.00003
-		const y = 0.00008
+		const x = 0.00006
+		const y = 0.00016
 
 		fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/recordings')
 			.then(res => res.json())
 			.then(data => this.recordings = data)
 
-		const socket = SocketioService.setupSocketConnection()
-		socket.on('positions', data => {
+		this.socket = SocketioService.setupSocketConnection()
+
+		this.socket.on('start', line => {
+			this.recordedLine = line
+		})
+
+		this.socket.on('stop', () => {
+			this.recordedLine = null
+		})
+
+		this.socket.on('replay', () => {
+			this.activeReplay = {
+				type: 'Feature',
+				geometry: {
+					type: 'LineString',
+					coordinates: []
+				}
+			}
+		})
+
+		this.socket.on('positions', data => {
 
 			const positions = JSON.parse(data)
-
-			console.log(positions)
-
 
 			if (this.activeRecording) {
 				const newActiveRecording = {
@@ -124,7 +137,8 @@ export default {
 						coordinates: this.activeReplay.geometry.coordinates
 					}
 				}
-				let replayed = this.replayedPositions.pop()
+
+				let replayed = positions.replay
 
 				const newReplayedBoat = {
 					type: 'Feature',
@@ -215,7 +229,6 @@ export default {
 
 	watch: {
 		recordedLine(value) {
-			// console.log('the changed value of recordedLine', value)
 			if (value) {
 				this.activeRecording = {
 					type: 'Feature',
@@ -226,25 +239,11 @@ export default {
 				}
 			} else {
 				this.activeRecording = null
+				fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/recordings')
+					.then(res => res.json())
+					.then(data => this.recordings = data)
 			}
-			fetch(process.env.VUE_APP_SOCKET_ENDPOINT + '/recordings')
-				.then(res => res.json())
-				.then(data => this.recordings = data)
 		},
-
-		// activeReplay(value) {
-		// 	if (value) {
-		// 		this.activeReplay = {
-		// 			type: 'Feature',
-		// 			geometry: {
-		// 				type: 'LineString',
-		// 				coordinates: []
-		// 			}
-		// 		}
-		// 	} else {
-		// 		this.activeReplay = null
-		// 	}
-		// }
 	},
 
 	beforeUnmount() {
@@ -254,17 +253,6 @@ export default {
 	methods: {
 		startReplay(recordingId) {
 			fetch(process.env.VUE_APP_SOCKET_ENDPOINT + `/saved?recordingId=${recordingId}`)
-				.then(res => res.json())
-				.then(data => {
-					this.replayedPositions = data
-					this.activeReplay = {
-						type: 'Feature',
-						geometry: {
-							type: 'LineString',
-							coordinates: []
-						}
-					}
-				})
 		}
 	}
 }
