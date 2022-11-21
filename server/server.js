@@ -92,12 +92,23 @@ providerSocket.on('positions', positions => {
         })
     }
     if (currentReplay) {
-        positions["replay"] = currentReplay.pop()
+        let replay = currentReplay.pop()
+        if(replay) {
+            positions["replay"] = replay
+        } else {
+            currentReplay = null
+            distributorSocket.emit('stopreplay')
+        }
     }
     distributorSocket.emit('positions', JSON.stringify(positions));
 })
 
 distributorSocket.on('connection', socket => {
+
+    socket.on('stopreplay', () => {
+        currentReplay = null
+        distributorSocket.emit('stopreplay')
+    })
 
     socket.on('disconnect', () => {
         console.log('user disconnected');

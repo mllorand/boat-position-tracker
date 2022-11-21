@@ -8,6 +8,7 @@
 		</div>
 		<div id="records">
 			<h2>Recorded tracks:</h2>
+			<button @click="stopReplay">Stop Replay</button>
 			<ul>
 				<li v-for="record in recordings" @click="startReplay(record.recording_id)">
 					<p>{{ record.start_time }}: {{ record.line }}</p>
@@ -111,6 +112,11 @@ export default {
 					coordinates: []
 				}
 			}
+		})
+
+		this.socket.on('stopreplay', () => {
+			this.activeReplay = null
+			this.replayedBoat = null
 		})
 
 		this.socket.on('positions', data => {
@@ -253,6 +259,9 @@ export default {
 	methods: {
 		startReplay(recordingId) {
 			fetch(process.env.VUE_APP_SOCKET_ENDPOINT + `/saved?recordingId=${recordingId}`)
+		},
+		stopReplay() {
+			this.socket.emit('stopreplay')
 		}
 	}
 }
